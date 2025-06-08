@@ -1,0 +1,1127 @@
+openapi: 3.0.1
+info:
+  contact:
+    name: SWAIN Support
+  description: |-
+    A powerful dynamic CRUD API engine that automatically generates RESTful endpoints for your data models
+    SWAIN provides automatic CRUD operations, filtering, pagination, and sorting capabilities for any data model.
+    Features:
+    - Automatic REST API generation
+    - Dynamic model support
+    - Complex filtering and querying
+    - Pagination and sorting
+    - Swagger/OpenAPI documentation
+    - Multiple database support (SQL & NoSQL)
+  termsOfService: https://swain.technology
+  title: SWAIN API
+  version: 1.0.0
+  x-logo:
+    altText: CrudSQL Logo
+    backgroundColor: '#FFFFFF'
+    url: https://raw.githubusercontent.com/takifouhal/crudsql/main/docs/logo.png
+servers:
+- url: /api
+paths:
+  /auth/login:
+    post:
+      description: Authenticate with username and password and return JWT and refresh
+        tokens
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/auth.LoginRequest'
+        description: Login credentials
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/auth.AuthResult'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Forbidden
+      summary: User login
+      tags:
+      - authentication
+      x-codegen-request-body-name: credentials
+  /models:
+    get:
+      description: Returns a list of all registered models and their table names
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ModelsResponse'
+          description: OK
+      summary: List all available models
+      tags:
+      - schema
+  /{model}:
+    get:
+      description: Get a list of entities. Supports pagination and sorting.
+      parameters:
+      - description: Model Name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      - description: Page number
+        in: query
+        name: page
+        schema:
+          type: integer
+      - description: Items per page
+        in: query
+        name: pageSize
+        schema:
+          type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query.FilterResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Bad Request
+      summary: List entities
+      tags:
+      - dynamic
+    post:
+      description: Create a new entity of the specified model type
+      parameters:
+      - description: Model Name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+        description: Entity Data
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Bad Request
+      summary: Create a new entity
+      tags:
+      - dynamic
+      x-codegen-request-body-name: entity
+  /{model}/count:
+    post:
+      description: Count entities that match the given filter criteria.
+      parameters:
+      - description: Model name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.FilterPayload'
+        description: Filter conditions (optional)
+        required: false
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Bad Request
+      summary: Count entities by filter
+      tags:
+      - dynamic
+      x-codegen-request-body-name: filter
+  /{model}/filter:
+    delete:
+      description: Delete multiple entities that match the given filter criteria.
+        This operation allows deleting multiple records in a single request.
+      parameters:
+      - description: Model name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.FilterPayload'
+        description: Filter conditions
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.SuccessResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Bad Request
+      summary: Mass delete entities by filter
+      tags:
+      - bulk-operations
+      x-codegen-request-body-name: filter
+    post:
+      description: "Filter entities using complex conditions in the request body,\
+        \ including field expressions, logical operations, and relationship filtering"
+      parameters:
+      - description: model name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      - description: Page number
+        in: query
+        name: page
+        schema:
+          default: 1
+          type: integer
+      - description: Items per page
+        in: query
+        name: pageSize
+        schema:
+          default: 10
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/query.Filter'
+        description: "Filter conditions, including optional 'sort' array (e.g., {\\"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query.FilterResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Internal Server Error
+      summary: Filter entities
+      tags:
+      - dynamic
+      x-codegen-request-body-name: filter
+    put:
+      description: Perform bulk updates on multiple entities that match the given
+        filter criteria. This operation allows updating multiple records in a single
+        request.
+      parameters:
+      - description: Model name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.UpdateFilterPayload'
+        description: Filter conditions and update data
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.SuccessResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Bad Request
+      summary: Mass update entities by filter
+      tags:
+      - bulk-operations
+      x-codegen-request-body-name: filter
+  /{model}/schema:
+    get:
+      description: Returns the schema information for a specific model including fields
+        and relationships
+      parameters:
+      - description: Model name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ModelSchema'
+          description: OK
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Internal Server Error
+      summary: Get model schema
+      tags:
+      - schema
+  /{model}/{id}:
+    delete:
+      description: Delete an entity by its ID
+      parameters:
+      - description: Model Name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      - description: Entity ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+          description: Deleted entity
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Not Found
+      summary: Delete an entity
+      tags:
+      - dynamic
+    get:
+      description: Retrieve a single entity by its ID
+      parameters:
+      - description: Model Name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      - description: Entity ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+          description: OK
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Not Found
+      summary: Get an entity by ID
+      tags:
+      - dynamic
+    put:
+      description: Update an existing entity by its ID
+      parameters:
+      - description: Model Name
+        in: path
+        name: model
+        required: true
+        schema:
+          type: string
+      - description: Entity ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+        description: Entity Data
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.ErrorResponse'
+          description: Not Found
+      summary: Update an entity
+      tags:
+      - dynamic
+      x-codegen-request-body-name: entity
+components:
+  schemas:
+    api.ErrorResponse:
+      description: Error response containing an error message
+      example:
+        message: message
+      properties:
+        message:
+          description: '@Description A descriptive error message'
+          type: string
+      type: object
+    api.FieldSchema:
+      description: Schema information for a model field
+      example:
+        operators:
+        - eq
+        - neq
+        - like
+        autoIncrement: true
+        name: id
+        isPrimaryKey: true
+        type: string
+        dbColumnName: id
+      properties:
+        autoIncrement:
+          description: AutoIncrement indicates if the field is auto-increment
+          example: true
+          type: boolean
+        dbColumnName:
+          description: DBColumnName is the column name in the database
+          example: id
+          type: string
+        isPrimaryKey:
+          description: IsPrimaryKey indicates if the field is a primary key
+          example: true
+          type: boolean
+        name:
+          description: Name of the field (from JSON tag if available)
+          example: id
+          type: string
+        operators:
+          description: List of supported operators for this field
+          example:
+          - eq
+          - neq
+          - like
+          items:
+            type: string
+          type: array
+        type:
+          description: "Type of the field (e.g., string, int)"
+          example: string
+          type: string
+      type: object
+    api.FilterPayload:
+      properties:
+        expressions:
+          items:
+            type: object
+          type: array
+      type: object
+    api.ModelSchema:
+      description: Schema information for a model including fields and relationships
+      example:
+        relationships:
+        - references: post_id
+          jsonName: posts
+          isSlice: true
+          isPolymorphic: false
+          name: Posts
+          polymorphicType: ""
+          relatedTable: posts
+          type: hasMany
+          foreignKey: post_id
+          joinTable: post_tag
+          relatedModel: Post
+        - references: post_id
+          jsonName: posts
+          isSlice: true
+          isPolymorphic: false
+          name: Posts
+          polymorphicType: ""
+          relatedTable: posts
+          type: hasMany
+          foreignKey: post_id
+          joinTable: post_tag
+          relatedModel: Post
+        fields:
+        - operators:
+          - eq
+          - neq
+          - like
+          autoIncrement: true
+          name: id
+          isPrimaryKey: true
+          type: string
+          dbColumnName: id
+        - operators:
+          - eq
+          - neq
+          - like
+          autoIncrement: true
+          name: id
+          isPrimaryKey: true
+          type: string
+          dbColumnName: id
+      properties:
+        fields:
+          description: Fields contains information about each field in the model
+          items:
+            $ref: '#/components/schemas/api.FieldSchema'
+          type: array
+        relationships:
+          description: Relationships contains information about model relationships
+          items:
+            $ref: '#/components/schemas/api.RelationshipSchema'
+          type: array
+      type: object
+    api.ModelsResponse:
+      description: Response containing a map of all registered models and their table
+        names
+      example:
+        models:
+          key: models
+      properties:
+        models:
+          additionalProperties:
+            type: string
+          description: |-
+            Models is a map of model names to their corresponding table names
+            example: {"User": "users", "Post": "posts"}
+          type: object
+      type: object
+    api.RelationshipSchema:
+      description: Schema information for a model relationship
+      example:
+        references: post_id
+        jsonName: posts
+        isSlice: true
+        isPolymorphic: false
+        name: Posts
+        polymorphicType: ""
+        relatedTable: posts
+        type: hasMany
+        foreignKey: post_id
+        joinTable: post_tag
+        relatedModel: Post
+      properties:
+        foreignKey:
+          description: ForeignKey is the foreign key in the relationship
+          example: post_id
+          type: string
+        isPolymorphic:
+          description: IsPolymorphic indicates if the relationship is polymorphic
+          example: false
+          type: boolean
+        isSlice:
+          description: IsSlice indicates if the relationship is a slice
+          example: true
+          type: boolean
+        joinTable:
+          description: JoinTable is the join table in the relationship
+          example: post_tag
+          type: string
+        jsonName:
+          description: JsonName of the relationship (from JSON tag if available)
+          example: posts
+          type: string
+        name:
+          description: Name of the relationship (from JSON tag if available)
+          example: Posts
+          type: string
+        polymorphicType:
+          description: PolymorphicType is the type of the polymorphic relationship
+          example: ""
+          type: string
+        references:
+          description: References are the references in the relationship
+          example: post_id
+          type: string
+        relatedModel:
+          description: Name of the related model
+          example: Post
+          type: string
+        relatedTable:
+          description: Name of the related table
+          example: posts
+          type: string
+        type:
+          description: "Type of relationship (hasOne, hasMany, belongsTo, manyToMany)"
+          example: hasMany
+          type: string
+      type: object
+    api.SuccessResponse:
+      example:
+        success: true
+        id: "{}"
+        message: message
+      properties:
+        id:
+          type: object
+        message:
+          type: string
+        success:
+          type: boolean
+      type: object
+    api.UpdateFilterPayload:
+      properties:
+        expressions:
+          items:
+            type: object
+          type: array
+        updateData:
+          additionalProperties: true
+          type: object
+      type: object
+    auth.AuthResult:
+      example:
+        refresh_token: refresh_token
+        roles:
+        - roles
+        - roles
+        type: type
+        user:
+          additional_data:
+            key: ""
+          is_active: true
+          last_login: last_login
+          roles:
+          - updated_at: updated_at
+            permissions:
+            - allowed_actions: allowed_actions
+              updated_at: updated_at
+              entity_name: entity_name
+              roles:
+              - null
+              - null
+              created_at: created_at
+              description: description
+              id: 1
+              scope_expression:
+              - 5
+              - 5
+            - allowed_actions: allowed_actions
+              updated_at: updated_at
+              entity_name: entity_name
+              roles:
+              - null
+              - null
+              created_at: created_at
+              description: description
+              id: 1
+              scope_expression:
+              - 5
+              - 5
+            name: name
+            created_at: created_at
+            description: description
+            id: 6
+            users:
+            - null
+            - null
+          - updated_at: updated_at
+            permissions:
+            - allowed_actions: allowed_actions
+              updated_at: updated_at
+              entity_name: entity_name
+              roles:
+              - null
+              - null
+              created_at: created_at
+              description: description
+              id: 1
+              scope_expression:
+              - 5
+              - 5
+            - allowed_actions: allowed_actions
+              updated_at: updated_at
+              entity_name: entity_name
+              roles:
+              - null
+              - null
+              created_at: created_at
+              description: description
+              id: 1
+              scope_expression:
+              - 5
+              - 5
+            name: name
+            created_at: created_at
+            description: description
+            id: 6
+            users:
+            - null
+            - null
+          name: name
+          anonymous: true
+          id: 0
+          email: email
+        token: token
+      properties:
+        refresh_token:
+          type: string
+        roles:
+          description: "Added: Include assigned role names"
+          items:
+            type: string
+          type: array
+        token:
+          type: string
+        type:
+          description: "\"local\", \"github\", \"google\", etc."
+          type: string
+        user:
+          $ref: '#/components/schemas/github_com_takifouhal_crudsql_pkg_internal_auth_models.User'
+      type: object
+    auth.LoginRequest:
+      properties:
+        password:
+          type: string
+        username:
+          type: string
+      type: object
+    github_com_takifouhal_crudsql_pkg_internal_auth_models.Permission:
+      example:
+        allowed_actions: allowed_actions
+        updated_at: updated_at
+        entity_name: entity_name
+        roles:
+        - null
+        - null
+        created_at: created_at
+        description: description
+        id: 1
+        scope_expression:
+        - 5
+        - 5
+      properties:
+        allowed_actions:
+          description: "Comma-separated actions: \"read,create,update,delete\", \"\
+            *\""
+          type: string
+        created_at:
+          type: string
+        description:
+          type: string
+        entity_name:
+          description: "e.g., \"users\", \"orders\", \"*\""
+          type: string
+        id:
+          type: integer
+        roles:
+          items:
+            $ref: '#/components/schemas/github_com_takifouhal_crudsql_pkg_internal_auth_models.Role'
+          type: array
+        scope_expression:
+          items:
+            type: integer
+          type: array
+        updated_at:
+          type: string
+      type: object
+    github_com_takifouhal_crudsql_pkg_internal_auth_models.Role:
+      example:
+        updated_at: updated_at
+        permissions:
+        - allowed_actions: allowed_actions
+          updated_at: updated_at
+          entity_name: entity_name
+          roles:
+          - null
+          - null
+          created_at: created_at
+          description: description
+          id: 1
+          scope_expression:
+          - 5
+          - 5
+        - allowed_actions: allowed_actions
+          updated_at: updated_at
+          entity_name: entity_name
+          roles:
+          - null
+          - null
+          created_at: created_at
+          description: description
+          id: 1
+          scope_expression:
+          - 5
+          - 5
+        name: name
+        created_at: created_at
+        description: description
+        id: 6
+        users:
+        - null
+        - null
+      properties:
+        created_at:
+          type: string
+        description:
+          type: string
+        id:
+          type: integer
+        name:
+          description: Role name must be unique
+          type: string
+        permissions:
+          items:
+            $ref: '#/components/schemas/github_com_takifouhal_crudsql_pkg_internal_auth_models.Permission'
+          type: array
+        updated_at:
+          type: string
+        users:
+          items:
+            $ref: '#/components/schemas/github_com_takifouhal_crudsql_pkg_internal_auth_models.User'
+          type: array
+      type: object
+    github_com_takifouhal_crudsql_pkg_internal_auth_models.User:
+      example:
+        additional_data:
+          key: ""
+        is_active: true
+        last_login: last_login
+        roles:
+        - updated_at: updated_at
+          permissions:
+          - allowed_actions: allowed_actions
+            updated_at: updated_at
+            entity_name: entity_name
+            roles:
+            - null
+            - null
+            created_at: created_at
+            description: description
+            id: 1
+            scope_expression:
+            - 5
+            - 5
+          - allowed_actions: allowed_actions
+            updated_at: updated_at
+            entity_name: entity_name
+            roles:
+            - null
+            - null
+            created_at: created_at
+            description: description
+            id: 1
+            scope_expression:
+            - 5
+            - 5
+          name: name
+          created_at: created_at
+          description: description
+          id: 6
+          users:
+          - null
+          - null
+        - updated_at: updated_at
+          permissions:
+          - allowed_actions: allowed_actions
+            updated_at: updated_at
+            entity_name: entity_name
+            roles:
+            - null
+            - null
+            created_at: created_at
+            description: description
+            id: 1
+            scope_expression:
+            - 5
+            - 5
+          - allowed_actions: allowed_actions
+            updated_at: updated_at
+            entity_name: entity_name
+            roles:
+            - null
+            - null
+            created_at: created_at
+            description: description
+            id: 1
+            scope_expression:
+            - 5
+            - 5
+          name: name
+          created_at: created_at
+          description: description
+          id: 6
+          users:
+          - null
+          - null
+        name: name
+        anonymous: true
+        id: 0
+        email: email
+      properties:
+        additional_data:
+          additionalProperties: true
+          type: object
+        anonymous:
+          type: boolean
+        email:
+          type: string
+        id:
+          type: integer
+        is_active:
+          type: boolean
+        last_login:
+          type: string
+        name:
+          type: string
+        roles:
+          items:
+            $ref: '#/components/schemas/github_com_takifouhal_crudsql_pkg_internal_auth_models.Role'
+          type: array
+      type: object
+    query.AggregateFunctionSpec:
+      description: "Example: { \"type\": \"COUNT\", \"field\": \"id\", \"alias\":\
+        \ \"count_of_id\" } Represents a single aggregation operation to perform on\
+        \ data"
+      properties:
+        alias:
+          description: |-
+            @Description Optional alias for the result of this aggregation
+            @Description If omitted, the function name may be used as an alias
+            @Description Example: "total_amount" for SUM(amount)
+          type: string
+        field:
+          description: |-
+            @Description The field on which the aggregation function is applied
+            @Description For COUNT(*), use "*" or leave empty
+          type: string
+        type:
+          description: |-
+            @Description The aggregation function type (e.g., COUNT, SUM, MIN, MAX)
+            @Description Common types: COUNT, SUM, AVG, MIN, MAX
+          type: string
+      type: object
+    query.AggregationSpec:
+      description: "Allows specifying functions like COUNT, SUM on fields, with an\
+        \ optional group-by clause Used for aggregating data in queries, similar to\
+        \ SQL GROUP BY with aggregate functions Example: {\"functions\": [{\"type\"\
+        : \"COUNT\", \"field\": \"id\"}], \"group_by\": [\"status\"]}"
+      properties:
+        expressions:
+          description: |-
+            @Description Optional aggregator-based conditions to be applied in a HAVING clause (if using SQL)
+            @Description These expressions may reference aggregator functions like SUM(...) or COUNT(...)
+          items:
+            description: "An interface for expressions that can be applied to a database\
+              \ query Implemented by FieldExpression, LogicalExpression, and RelationshipExpression"
+            type: object
+          type: array
+        functions:
+          description: |-
+            @Description A list of aggregation functions (e.g., COUNT, SUM, MIN, MAX) to apply
+            @Description Each function specifies the type, field, and optional alias
+          items:
+            $ref: '#/components/schemas/query.AggregateFunctionSpec'
+          type: array
+        group_by:
+          description: |-
+            @Description Fields for grouping results (e.g., by "status" or ["status","category"])
+            @Description Similar to SQL GROUP BY clause
+          items:
+            type: string
+          type: array
+      type: object
+    query.Filter:
+      description: "Filter conditions for querying entities using complex expressions\
+        \ Supports logical operations (AND, OR, NOT), field comparisons, and relationship\
+        \ filtering Example: { \"expressions\": [ {\"field\": \"age\", \"operator\"\
+        : \"gte\", \"value\": 18}, { \"operator\": \"AND\", \"expressions\": [ {\"\
+        field\": \"status\", \"operator\": \"eq\", \"value\": \"active\"} ] } ] }"
+      properties:
+        aggregations:
+          allOf:
+          - $ref: '#/components/schemas/query.AggregationSpec'
+          description: |-
+            @Description Aggregations can specify functions like COUNT, SUM, GROUP BY, etc.
+            @Description If not provided, no aggregations will be performed.
+            @Description Used for data analysis and reporting queries
+          type: object
+        expressions:
+          description: |-
+            @Description Array of expressions to filter entities
+            @Description Each expression can be a FieldExpression, LogicalExpression, or RelationshipExpression
+            @Description If empty, no filtering will be applied
+          items:
+            description: "An interface for expressions that can be applied to a database\
+              \ query Implemented by FieldExpression, LogicalExpression, and RelationshipExpression"
+            type: object
+          type: array
+        projections:
+          description: |-
+            @Description Array of field names to select from the main entity
+            @Description If empty, all fields will be selected
+            @Description Example: ["id", "name", "email"] to select only those fields
+          items:
+            type: string
+          type: array
+        sort:
+          description: |-
+            @Description Array of sort specifications to order the results
+            @Description Example: [{"field": "name", "direction": "asc"}, {"field": "createdAt", "direction": "desc"}]
+            @Description Field names can be struct field names or database column names. Direction is case-insensitive ('asc' or 'desc').
+          items:
+            $ref: '#/components/schemas/query.SortSpec'
+          type: array
+      type: object
+    query.FilterResponse:
+      description: Paginated response containing filtered entities and metadata Used
+        for both simple list operations and complex filtered queries Contains both
+        the data and pagination information
+      example:
+        total: 1
+        data: "{}"
+        page: 0
+        total_pages: 5
+        page_size: 6
+      properties:
+        data:
+          description: |-
+            @Description Array of entities matching the filter conditions
+            @Description For relationship queries, includes related entities based on the filter
+            @Description The actual type depends on the entity being queried
+          type: object
+        page:
+          description: |-
+            @Description Current page number (1-based indexing)
+            @Description Example: page=2 returns the second page of results
+            @Description Default is 1 if not specified
+          type: integer
+        page_size:
+          description: |-
+            @Description Number of items per page (default may vary)
+            @Description Example: page_size=20 returns 20 items per page
+            @Description Default is typically 10 or 20 depending on configuration
+          type: integer
+        total:
+          description: |-
+            @Description Total number of records matching the filter conditions
+            @Description Used for calculating pagination metadata
+            @Description May be estimated for very large result sets
+          type: integer
+        total_pages:
+          description: |-
+            @Description Total number of pages based on total records and page size
+            @Description Calculated as ceil(total/page_size)
+            @Description Used for pagination UI components
+          type: integer
+      type: object
+    query.SortSpec:
+      description: "Specifies a field and the direction for sorting (ascending or\
+        \ descending) Example: {\"field\": \"name\", \"direction\": \"asc\"} Field\
+        \ names can be struct field names, JSON field names, or database column names"
+      properties:
+        direction:
+          description: |-
+            @Description The sort direction: "asc" for ascending, "desc" for descending
+            @Description Case-insensitive, so "ASC", "asc", and "Asc" are all valid
+          type: string
+        field:
+          description: |-
+            @Description The name of the field to sort by
+            @Description Can be a struct field name (e.g., "FirstName"), JSON field name (from json tag),
+            @Description or database column name (e.g., "first_name")
+          type: string
+      type: object
+  securitySchemes:
+    BasicAuth:
+      scheme: basic
+      type: http
+    ApiKeyAuth:
+      in: header
+      name: X-API-Key
+      type: apiKey
+    BearerAuth:
+      description: Enter your bearer token in the format **Bearer <token>**
+      in: header
+      name: Authorization
+      type: apiKey
+x-original-swagger-version: "2.0"
