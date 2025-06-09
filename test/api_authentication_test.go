@@ -11,20 +11,21 @@ package openapi
 
 import (
 	"context"
+	"testing"
+
+	openapiclient "github.com/mobixdev/SWAIN-GO_SDK"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
 )
 
 func Test_openapi_AuthenticationAPIService(t *testing.T) {
 
-	configuration := openapiclient.NewConfiguration("","")
+	configuration := openapiclient.NewConfiguration("", "")
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test AuthenticationAPIService AuthLoginPost", func(t *testing.T) {
 
-		t.Skip("skip test")  // remove to run test
+		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.AuthenticationAPI.AuthLoginPost(context.Background()).Execute()
 
